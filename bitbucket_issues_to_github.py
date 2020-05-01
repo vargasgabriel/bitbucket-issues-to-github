@@ -214,6 +214,7 @@ def parse_bitbucket_export(f, f_name):
     bissues = bexport_json['issues']
     if len(bissues) == 0:
         raise ValueError('Could not find any issue in ' + f_name)
+    bissues = sorted(bissues, key=lambda x: x['id'])
     comments = bexport_json['comments']
     comment_map = {}
     for bissue in bissues:
