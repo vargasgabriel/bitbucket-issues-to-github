@@ -32,6 +32,11 @@ Once you have met these prerequisites and setup the dependencies, you can run th
 
 `python3 bitbucket_issues_to_github.py db-1.0.json`
 
+### Dockerfile
+
+Build image using `docker build --build-arg token=GITHUB_TOKEN -t IMAGE_NAME .`
+
+To run migration on container, use `docker run -it --rm -e file_name=FILE_NAME -v PWD:/var/app -p 80:80 IMAGE_NAME`
 
 ## Dependencies
 
