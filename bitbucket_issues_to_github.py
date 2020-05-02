@@ -136,26 +136,25 @@ def append_time_label(sb, timestring, label):
     sb.append('\n[' + label + ': ' + timestring + ']')
 
 
-def construct_gcomment_content(gissue, bcomment):    
+def construct_gcomment_content(gissue, bcomment):
+    content = bcomment['content']
+    if content is None:
+        return None
     comment_label = 'Comment created by ' + bcomment['user']
     comment_created_on = time_string_to_datetime_string(timestring=bcomment['created_on'])
     sb = []
     append_time_label(sb=sb, timestring=comment_created_on, label=comment_label)
     sb.append('\n')
-    content = bcomment['content']
-    if content is None:
-        sb.append("Bitbucket comment without any content")
-    else:
-        sb.append(content)
+    sb.append(content)
     return ''.join(sb)
 
 
 def post_gcomment(gissue, bcomment):
     # TODO get all comments on the github issue and compare the comment hash with bitbucket comment hash
-    gcomments = {
-        "body": construct_gcomment_content(gissue=gissue, bcomment=bcomment)
-    }
-    do_github_request(Request('POST', url=comment_url(str(gissue['number'])), json=gcomments))
+    gcomment = construct_gcomment_content(gissue=gissue, bcomment=bcomment)
+    if gcomment is None:
+        return
+    do_github_request(Request('POST', url=comment_url(str(gissue['number'])), json={ "body": gcomment }))
 
 
 def append_bcomment(sb, bcomment):
