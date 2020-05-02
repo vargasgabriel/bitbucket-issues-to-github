@@ -17,6 +17,9 @@ def repo_url():
 def issue_url():
     return repo_url() + '/issues'
 
+def comment_url(issue_id):
+    return issue_url() + '/' + issue_id + '/comments'
+
 
 def do_request(req):
     prep_req = req.prepare()
@@ -73,7 +76,6 @@ def post_bissue_to_github(bissue):
     res = do_github_request(Request('POST', url=issue_url(), json=incomplete_gissue))
     full_gissue = res.json()
     return full_gissue
-
 
 def is_gissue_patch_different(gissue, gissue_patch):
     if gissue['state'] != gissue_patch['state']:
@@ -135,6 +137,28 @@ def append_time_label(sb, timestring, label):
     sb.append('\n[' + label + ': ' + timestring + ']')
 
 
+def construct_gcomment_content(gissue, bcomment):    
+    comment_label = 'Comment created by ' + bcomment['user']
+    comment_created_on = time_string_to_date_string(timestring=bcomment['created_on'])
+    sb = []
+    append_time_label(sb=sb, timestring=comment_created_on, label=comment_label)
+    sb.append('\n')
+    content = bcomment['content']
+    if content is None:
+        sb.append("Bitbucket comment without any content")
+    else:
+        sb.append(content)
+    return ''.join(sb)
+
+
+def post_gcomment(gissue, bcomment):
+    # TODO get all comments on the github issue and compare the comment hash with bitbucket comment hash
+    gcomments = {
+        "body": construct_gcomment_content(gissue=gissue, bcomment=bcomment)
+    }
+    do_github_request(Request('POST', url=comment_url(str(gissue['number'])), json=gcomments))
+
+
 def append_bcomment(sb, bcomment):
     content = bcomment['content']
     if content is None:
@@ -146,7 +170,6 @@ def append_bcomment(sb, bcomment):
     sb.append('\n')
     sb.append(content)
 
-
 def construct_gissue_content(bissue, bexport):
     sb = [bissue['content'], '\n']
     created_on = time_string_to_date_string(timestring=bissue['created_on'])
@@ -154,9 +177,11 @@ def construct_gissue_content(bissue, bexport):
     append_time_label(sb=sb, timestring=created_on, label='Issue created by ' + bissue['reporter'])
     if created_on != updated_on:
         append_time_label(sb=sb, timestring=updated_on, label='Last updated on bitbucket')
-    bcomments = bexport.comment_map[bissue['id']]
-    for bcomment in bcomments:
-        append_bcomment(sb=sb, bcomment=bcomment)
+
+    # TODO option to append comment on issue content
+    # bcomments = bexport.comment_map[bissue['id']]
+    # for bcomment in bcomments:
+    #     append_bcomment(sb=sb, bcomment=bcomment)
     return ''.join(sb)
 
 
@@ -178,6 +203,10 @@ def patch_gissue(gissue, bissue, bexport):
         do_github_request(Request('PATCH', url=issue_url() + '/' + str(gissue['number']), json=gissue_patch))
     else:
         print('Skip issue "' + gissue['title'] + '" since there are no changes compared to ' + repo_url())
+
+    bcomments = bexport.comment_map[bissue['id']]
+    for bcomment in bcomments:
+        post_gcomment(gissue=gissue, bcomment=bcomment)
 
 
 def find_gissue_with_bissue_title(gissues, bissue):
