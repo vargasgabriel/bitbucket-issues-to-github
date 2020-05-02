@@ -1,6 +1,6 @@
 
 # Change this to your own target repo.
-TARGET_REPO = 'fkirc/bitbucket-issues-to-github'
+TARGET_REPO = None # username/reponame
 
 # Github only accepts assignees from valid users. We map those users from bitbucket.
 USER_MAPPING = {

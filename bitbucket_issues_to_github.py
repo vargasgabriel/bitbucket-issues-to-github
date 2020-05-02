@@ -260,6 +260,10 @@ def main():
         exit(-1)
     f_name = sys.argv[1]
 
+    if config.TARGET_REPO is None:
+        sys.exit('Error: Configure TARGET_REPO in config.py')
+
+
     if get_github_access_token() is None:
         print('Warning: Environment variable GITHUB_ACCESS_TOKEN is not set. This script will fail for private repositories.')
 
