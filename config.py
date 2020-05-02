@@ -2,6 +2,14 @@
 # Change this to your own target repo.
 TARGET_REPO = None # username/reponame
 
+GITHUB_PROJECT_ID = None # 12345
+STATE_MAPPING_PROJECT_COLUMNS = {
+    'new': 'To Do',
+    'open': 'In progress',
+    'on hold': 'On hold',
+    'closed': 'Done'
+}
+
 # Github only accepts assignees from valid users. We map those users from bitbucket.
 USER_MAPPING = {
     'martin_gaertner': 'MartinGaertner',

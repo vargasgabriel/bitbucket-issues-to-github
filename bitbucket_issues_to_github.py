@@ -17,8 +17,21 @@ def repo_url():
 def issue_url():
     return repo_url() + '/issues'
 
+
 def comment_url(issue_id):
     return issue_url() + '/' + issue_id + '/comments'
+
+
+def project_url():
+    return 'https://api.github.com/projects'
+
+
+def project_columns_url(project_id):
+    return project_url() + '/' + project_id + '/columns'
+
+
+def project_cards_url(column_id):
+    return project_url() + '/columns/' + column_id + '/cards'
 
 
 def do_request(req):
@@ -45,7 +58,10 @@ def get_github_access_token():
 
 
 def do_github_request(req):
-    headers = {'User-Agent': requests_toolbelt.user_agent('bitbucket_issues_to_github', '1.0.0')}
+    headers = {
+        'User-Agent': requests_toolbelt.user_agent('bitbucket_issues_to_github', '1.0.0'),
+        'Accept': 'application/vnd.github.inertia-preview+json'
+    }
     if get_github_access_token() is not None:
         headers['Authorization'] = 'token ' + get_github_access_token()
     req.headers.update(headers)
@@ -67,6 +83,22 @@ def query_all_repo_gissues():
     return issues
 
 
+def query_all_project_columns():
+    project_id = config.GITHUB_PROJECT_ID
+    if project_id is None:
+        return []
+    query_url = project_columns_url(str())
+    columns = []
+    while True:
+        res = do_github_request(Request('GET', url=query_url, params={'per_page': 100, 'state': 'all'}))
+        columns.extend(res.json())
+        if 'next' in res.links:
+            query_url = res.links['next']['url']
+        else:
+            break
+    return columns
+
+
 def post_bissue_to_github(bissue):
     # We patch the remaining elements right after posting the issue.
     incomplete_gissue = {
@@ -76,6 +108,20 @@ def post_bissue_to_github(bissue):
     res = do_github_request(Request('POST', url=issue_url(), json=incomplete_gissue))
     full_gissue = res.json()
     return full_gissue
+
+
+def post_project_card(gissue, bissue, gmap_project_columns):
+    bstatus = bissue['status']
+    if bstatus not in config.STATE_MAPPING_PROJECT_COLUMNS:
+        return
+    gcolumn_name = config.STATE_MAPPING_PROJECT_COLUMNS[bstatus]
+    column_id = gmap_project_columns[gcolumn_name]
+    gcard = {
+        "content_id": gissue['id'],
+        "content_type": "Issue"
+    }
+    do_github_request(Request('POST', url=project_cards_url(column_id=str(column_id)), json=gcard))
+
 
 def is_gissue_patch_different(gissue, gissue_patch):
     if gissue['state'] != gissue_patch['state']:
@@ -128,6 +174,13 @@ def map_bkind_to_glabels(bissue, glabels):
     glabels.add(label)
 
 
+def map_project_columns(gproject_columns):
+    gmap_project_columns = {}
+    for gproject_column in gproject_columns:
+        gmap_project_columns[gproject_column['name']] = gproject_column['id']
+    return gmap_project_columns
+
+
 def time_string_to_datetime_string(timestring):
     return parser.parse(timestring).strftime("%Y-%m-%d %H:%M:%S")
 
@@ -167,6 +220,7 @@ def append_bcomment(sb, bcomment):
     append_time_label(sb=sb, timestring=comment_created_on, label=comment_label)
     sb.append('\n')
     sb.append(content)
+
 
 def construct_gissue_content(bissue, bexport):
     sb = [bissue['content'], '\n']
@@ -217,6 +271,9 @@ def find_gissue_with_bissue_title(gissues, bissue):
 def bitbucket_to_github(bexport):
     bissues = bexport.bissues
     old_gissues = query_all_repo_gissues()
+    gproject_columns = query_all_project_columns()
+
+    gmap_project_columns = map_project_columns(gproject_columns=gproject_columns)
 
     print('Number of github issues in ' + repo_url() + ' before POSTing:', len(old_gissues))
     print('Number of bitbucket issues in ' + bexport.f_name + ':', len(bissues))
@@ -226,6 +283,9 @@ def bitbucket_to_github(bexport):
         if gissue is None:
             gissue = post_bissue_to_github(bissue=bissue)
         patch_gissue(gissue=gissue, bissue=bissue, bexport=bexport)
+
+        if gmap_project_columns:
+            post_project_card(gissue=gissue, bissue=bissue, gmap_project_columns=gmap_project_columns)
 
 
 class BitbucketExport:
