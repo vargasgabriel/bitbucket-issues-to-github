@@ -128,9 +128,8 @@ def map_bkind_to_glabels(bissue, glabels):
     glabels.add(label)
 
 
-def time_string_to_date_string(timestring):
-    datetime = parser.parse(timestring)
-    return datetime.strftime("%Y-%m-%d")
+def time_string_to_datetime_string(timestring):
+    return parser.parse(timestring).strftime("%Y-%m-%d %H:%M:%S")
 
 
 def append_time_label(sb, timestring, label):
@@ -139,7 +138,7 @@ def append_time_label(sb, timestring, label):
 
 def construct_gcomment_content(gissue, bcomment):    
     comment_label = 'Comment created by ' + bcomment['user']
-    comment_created_on = time_string_to_date_string(timestring=bcomment['created_on'])
+    comment_created_on = time_string_to_datetime_string(timestring=bcomment['created_on'])
     sb = []
     append_time_label(sb=sb, timestring=comment_created_on, label=comment_label)
     sb.append('\n')
@@ -165,15 +164,15 @@ def append_bcomment(sb, bcomment):
         return  # There are bitbucket comments without any content. We ignore them.
     sb.append('\n')
     comment_label = 'Comment created by ' + bcomment['user']
-    comment_created_on = time_string_to_date_string(timestring=bcomment['created_on'])
+    comment_created_on = time_string_to_datetime_string(timestring=bcomment['created_on'])
     append_time_label(sb=sb, timestring=comment_created_on, label=comment_label)
     sb.append('\n')
     sb.append(content)
 
 def construct_gissue_content(bissue, bexport):
     sb = [bissue['content'], '\n']
-    created_on = time_string_to_date_string(timestring=bissue['created_on'])
-    updated_on = time_string_to_date_string(timestring=bissue['updated_on'])
+    created_on = time_string_to_datetime_string(timestring=bissue['created_on'])
+    updated_on = time_string_to_datetime_string(timestring=bissue['updated_on'])
     append_time_label(sb=sb, timestring=created_on, label='Issue created by ' + bissue['reporter'])
     if created_on != updated_on:
         append_time_label(sb=sb, timestring=updated_on, label='Last updated on bitbucket')
